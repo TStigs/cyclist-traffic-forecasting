@@ -54,3 +54,5 @@ rsconnect/
 .RData
 .Ruserdata
 >>>>>>> master
+
+/.quarto/
