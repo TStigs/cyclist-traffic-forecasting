@@ -3,13 +3,20 @@ project:
   output-dir: docs
 
 website:
-  title: "Johnson St. Bridge Forecasting"
+  title: "Tyler Stigall Portfolio"
+  navbar:
+    background: primary
+    left:
+      - text: "Johnson St. Bridge Forecast"
+        href: index.html
 
 format:
-  revealjs:
-    theme: dark
-    transition: fade
-    slide-number: true
-    chalkboard: true
-    width: 1280
-    height: 720
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    link-external-icon: true
+    link-external-newwindow: true
