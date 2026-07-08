@@ -50,5 +50,32 @@ The models were fully trained on historical data and deployed to generate true o
 
 The visualization below illustrates the transition from the high-volume October training baseline into the true out-of-sample November forecast period.
 
-```{#fig-forecast}
-![](results/production_forecast_with_context.png){fig-align="center" width="100%"}
+```{r}
+#| label: fig-forecast
+#| fig-cap: "November 2025 Production Forecast Evaluation vs. October Baseline"
+#| out-width: "100%"
+#| echo: false
+
+knitr::include_graphics("results/forecast_horizon.png")
+
+```
+
+### Strategic Deep-Dive: Managing Regime Shifts
+
+Analyzing the out-of-sample visual tracking reveals a classic forecasting phenomenon:
+
+* **The ARIMAX Limitation:** The econometric model systematically over-projected traffic during mid-November. Because it relies heavily on historical lags, its autoregressive structure dragged the high-volume momentum of September and October forward into late autumn, making it slow to adapt to seasonal shifts.
+* **The XGBoost Advantage:** XGBoost achieved an impressive operational accuracy of **85.01% (14.99% MAPE)**. By stripping away historical inertia and evaluating features non-linearly, it immediately recognized the exact temperature and rainfall thresholds where casual commuter traffic drops off entirely. 
+
+## Operational Execution & Business Impact
+
+From a revenue management and operational standpoint, deploying **XGBoost** over classical time-series frameworks provides significant commercial value:
+
+* **Risk Mitigation:** Accurately mapping sudden demand drops protects municipal operations from over-allocating maintenance teams or contracted resources during severe weather anomalies.
+* **Data-Driven Policy:** Quantifying the exact impact of environmental factors allows stakeholders to accurately evaluate transit utility and substantiate long-term infrastructure investment strategies.
+
+***
+
+### Open-Source Repository
+The underlying data processing, modeling, and evaluation codebase is fully accessible for audit and replication at:  
+[github.com/tylerstigall/johnson-st-bridge-forecast](https://github.com/tylerstigall/johnson-st-bridge-forecast)
