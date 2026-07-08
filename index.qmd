@@ -1,0 +1,94 @@
+---
+title: "Predicting Urban Pulse"
+subtitle: "Johnson Street Bridge Cyclist Traffic Forecasting Portfolio"
+author: "Tyler Stigall"
+date: "2026-07-07"
+format: 
+  revealjs:
+    footer: "GitHub Portfolio | Active Transportation Analytics"
+---
+
+## Executive Context
+
+### Victoria's Critical Active Transportation Artery
+* The **Johnson Street Bridge** serves as a vital multi-use link connecting downtown Victoria with regional trail networks.
+* **Objective:** Build an end-to-end predictive pipeline to forecast daily cyclist volumes.
+* **Business Value:** Empower infrastructure management to optimize seasonal maintenance windows and accurately evaluate environmental transit ROI.
+
+---
+
+## Integrated Data Strategy
+
+::: {.columns}
+
+::: {.column width="50%"}
+### 📊 Ingestion & Features
+* **Ridership Baseline:** Automated daily counts extracted from the public Eco-Counter platform.
+* **Meteorological Regressors:** Historical and realized weather arrays (temperature, precipitation, wind speed) pulled directly via `openmeteo`.
+* **Calendar Controls:** Engineered indicator variables tracking day-of-week momentum and monthly seasonal shifts.
+:::
+
+::: {.column width="50%"}
+### 🛠️ Modeling Frameworks
+1. **Environmental Benchmark:** Ordinary Least Squares (OLS) Linear Regression.
+2. **Classical Econometrics:** ARIMAX(14, 1, 1)(1, 0, 0) capturing dynamic temporal auto-regressive lags.
+3. **Machine Learning:** Non-linear Gradient Boosted Trees via `xgboost`.
+:::
+
+:::
+
+---
+
+## The Out-of-Sample Challenge
+
+* **The Setup:** Models were trained on historical records and pushed forward to generate true out-of-sample forecasts for November.
+* **The Dynamic Shift:** Transitioning from early autumn to late November represents a severe weather-driven demand regime shift.
+* **The Forecasting Test:** Can traditional time-series memory adapt to sudden environmental changes, or does machine learning offer better structural flexibility?
+
+---
+
+## November Production Metrics
+
+Our true production evaluation against real-world bridge data yielded a definitive winner:
+
+| Model Architecture | MAE (Daily) | RMSE | MAPE (%) | Status |
+|:---|:---:|:---:|:---:|:---:|
+| **XGBoost (Machine Learning)** | **233.18** | **285.63** | **14.99%** | 🏆 **Deployed** |
+| ARIMAX(14, 1, 1) | 287.36 | 370.29 | 20.21% | Baseline |
+| Linear Regression (OLS) | 318.65 | 418.81 | 21.51% | Benchmark |
+
+: November 2025 Model Performance Comparison Table
+
+---
+
+## Production Horizon Evaluation
+
+::: {.columns}
+
+::: {.column width="40%"}
+### Key Takeaways
+* **XGBoost Dominated:** Achieved a production accuracy of **85.01%** (14.99% MAPE).
+* **The ARIMAX Limitation:** Suffered from an upward bias because its autoregressive lag structure was heavily anchored to high-volume autumn momentum.
+* **Regime Shift Resilience:** XGBoost stripped away historical inertia and successfully mapped the exact non-linear weather thresholds where daily traffic collapses.
+:::
+
+::: {.column width="60%"}
+![](results/production_forecast_with_context.png){fig-align="center" width="100%"}
+:::
+
+:::
+
+---
+
+## Operational Execution
+
+### Real-World Business Value
+* **Risk Management:** Utilizing XGBoost prevents severe over-capacity resource allocation errors during sudden, weather-driven "demand cliffs."
+* **Reproducible Infrastructure:** The complete R execution logic spans data collection to evaluation across five clean, atomic scripts.
+* **Live Storefront Deployment:** Automatically compiled via Quarto and continually hosted for executive stakeholder tracking.
+
+## Questions & Discussion
+<br><br>
+::: {style="text-align: center; font-family: monospace; font-size: 1.5em; color: #3b82f6;"}
+github.com/tylerstigall/johnson-st-bridge-forecast
+:::
