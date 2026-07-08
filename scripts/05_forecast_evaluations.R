@@ -51,11 +51,11 @@ ggplot(plot_data, aes(x = date, y = Cyclists, group = Model)) +
   scale_linetype_manual(values = c("Actual" = "solid", "OLS" = "dotdash", "XGBoost" = "dashed", "ARIMAX" = "dashed")) +
   scale_size_manual(values = c("Actual" = 1.2, "OLS" = 0.8, "XGBoost" = 1, "ARIMAX" = 1)) +
   labs(
-    title = "True Production Forecast Evaluation",
+    title = "Forecast Evaluation: Actual vs Predicted Cyclist Counts",
     subtitle = "November 2025 Out-of-Sample Model Comparison (Johnson St. Bridge)",
     x = "Date",
     y = "Number of Cyclists",
-    caption = "Portfolio Analysis: True Out-of-Sample Production Evaluation"
+    caption = "Out-of-Sample Forecast Evaluation"
   ) +
   theme_minimal(base_size = 14) +
   theme(
