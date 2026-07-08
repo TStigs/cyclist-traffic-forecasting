@@ -6,7 +6,10 @@
 # Load required libraries
 library(readr)
 library(dplyr)
+library(tidyr)
+library(ggplot2)
 library(forecast)
+library(xgboost)
 
 # 1. Load Processed Data
 # ------------------------------------------------------------------------------
@@ -52,48 +55,86 @@ fit_backtest <- Arima(
   method = "CSS-ML"
 )
 
-# 5. Forecast and Evaluate Accuracy
+# 5. Generate Alternative Baseline Models for Comparison
 # ------------------------------------------------------------------------------
-val_forecast <- forecast(fit_backtest, xreg = xreg_val, h = holdout_days)
+# --- Model A: XGBoost (Machine Learning Framework) ---
+# Prepare matrix inputs required by xgboost
+X_train <- as.matrix(bt_train_data[, xreg_cols])
+y_train <- bt_train_data$cyclists
+X_val   <- as.matrix(bt_val_data[, xreg_cols])
 
-# Extract predictions
-val_predictions <- as.numeric(val_forecast$mean)
-val_actuals     <- bt_val_data$cyclists
-
-# Calculate Error Metrics
-mae  <- mean(abs(val_actuals - val_predictions))
-rmse <- sqrt(mean((val_actuals - val_predictions)^2))
-
-cat("\n--- Simple Backtest Results (30-Day Holdout) ---\n")
-cat(sprintf("Mean Absolute Error (MAE): %.2f cyclists\n", mae))
-cat(sprintf("Root Mean Squared Error (RMSE): %.2f cyclists\n", rmse))
-
-# Save results for visualization
-backtest_results <- data.frame(
-  date = bt_val_data$date,
-  Actual = val_actuals,
-  Predicted = val_predictions
+# Train the XGBoost model
+fit_xgb <- xgboost(
+  data      = X_train, 
+  label     = y_train, 
+  max_depth = 4, 
+  eta       = 0.1, 
+  nrounds   = 50, 
+  objective = "reg:squarederror",
+  verbose   = 0                  # Keeps the console clean
 )
-write_csv(backtest_results, "results/simple_backtest_results.csv")
+
+# Predict using XGBoost
+val_pred_xgb <- predict(fit_xgb, newdata = X_val)
 
 
-# 6. Visualize Backtest Performance
+# --- Model B: Simple OLS Regression (Weather variables only) ---
+fit_lm <- lm(cyclists ~ mean_temp + precip_mm + wind_mean_kmh, data = bt_train_data)
+val_pred_lm <- predict(fit_lm, newdata = bt_val_data)
+
+
+# --- Model C: Your ARIMAX Model (From Step 4) ---
+val_pred_arimax <- as.numeric(val_forecast$mean)
+
+# Isolate Actuals
+val_actuals <- bt_val_data$cyclists
+
+# 6. Calculate Comparative Corporate Performance Metrics
 # ------------------------------------------------------------------------------
-library(ggplot2)
+compute_metrics <- function(actual, predicted) {
+  mae  <- mean(abs(actual - predicted))
+  rmse <- sqrt(mean((actual - predicted)^2))
+  mape <- mean(abs((actual - predicted) / actual), na.rm = TRUE) * 100
+  return(c(MAE = mae, RMSE = rmse, MAPE = mape))
+}
 
-ggplot(backtest_results, aes(x = date)) +
-  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
-  geom_line(aes(y = Predicted, color = "Predicted"), size = 1, linetype = "dashed") +
-  scale_color_manual(
-    name = "Legend",
-    values = c("Actual" = "black", "Predicted" = "red")
-  ) +
+metrics_summary <- rbind(
+  "Linear Regression (OLS)"   = compute_metrics(val_actuals, val_pred_lm),
+  "XGBoost (Machine Learning)" = compute_metrics(val_actuals, val_pred_xgb),
+  "ARIMAX(14,1,1)(1,0,0)"     = compute_metrics(val_actuals, val_pred_arimax)
+)
+
+print(round(metrics_summary, 2))
+
+# 7. Reshape and Plot All Models Simultaneously
+# ------------------------------------------------------------------------------
+
+
+plot_comparison <- data.frame(
+  date    = bt_val_data$date,
+  Actual  = val_actuals,
+  OLS     = val_pred_lm,
+  XGBoost = val_pred_xgb,
+  ARIMAX  = val_pred_arimax
+)
+
+plot_long <- plot_comparison %>%
+  pivot_longer(cols = -date, names_to = "Model", values_to = "Cyclists")
+
+# Reorder levels for plotting hierarchy
+plot_long$Model <- factor(plot_long$Model, levels = c("Actual", "OLS", "XGBoost", "ARIMAX"))
+
+ggplot(plot_long, aes(x = date, y = Cyclists, group = Model)) +
+  geom_line(aes(color = Model, linetype = Model, size = Model)) +
+  scale_color_manual(values = c("Actual" = "black", "OLS" = "blue", "XGBoost" = "darkgreen", "ARIMAX" = "red")) +
+  scale_linetype_manual(values = c("Actual" = "solid", "OLS" = "dotdash", "XGBoost" = "dashed", "ARIMAX" = "dashed")) +
+  scale_size_manual(values = c("Actual" = 1.2, "OLS" = 0.8, "XGBoost" = 1, "ARIMAX" = 1)) +
   labs(
-    title = "Out-of-Sample Backtest Validation",
-    subtitle = "ARIMAX(14,1,1)(1,0,0) Performance Over 30-Day Holdout",
+    title = "Model Evaluation Bake-Off (30-Day Out-of-Sample)",
+    subtitle = "Comparing Classical Econometrics vs. Machine Learning Architectures",
     x = "Date",
     y = "Number of Cyclists",
-    caption = sprintf("Backtest Metrics: MAE = %.2f | RMSE = %.2f", mae, rmse)
+    caption = "Portfolio Analysis: Out-of-Sample Validation"
   ) +
   theme_minimal(base_size = 14) +
   theme(
@@ -102,6 +143,6 @@ ggplot(backtest_results, aes(x = date)) +
     legend.position = "top"
   )
 
-# Save the visualization for the portfolio/README
-ggsave("results/backtest_validation_plot.png", width = 8, height = 5)
-cat("Backtest validation plot saved successfully to 'results/backtest_validation_plot.png'\n")
+# Save the multi-model chart
+ggsave("results/model_bakeoff_comparison.png", width = 9, height = 6)
+
