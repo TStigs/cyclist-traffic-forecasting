@@ -25,7 +25,8 @@ bikes_ts <- ts(train_data$cyclists, frequency = 7)
 
 # 2. Define Exogenous Regressors
 # ------------------------------------------------------------------------------
-# Exclude June and Monday to avoid multicollinearity
+# Exclude June and Monday to avoid multicollinearity (Coefficients will be 
+# relative to the exlcuded month and excluded day)
 month_cols <- paste0("month_", sprintf("%02d", 1:12))
 day_cols   <- paste0("day_", c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))
 
@@ -42,7 +43,7 @@ class(xreg_train) <- "numeric"
 xreg_test  <- as.matrix(test_data[, xreg_cols])
 class(xreg_test) <- "numeric"
 
-# 3. Fit ARIMAX Model
+# 3. Fit ARIMAX Model (Maximum Likelyhood)
 # ------------------------------------------------------------------------------
 fit_arimax <- Arima(
   bikes_ts,
