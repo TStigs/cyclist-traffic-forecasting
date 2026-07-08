@@ -1,0 +1,15 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Johnson St. Bridge Forecasting"
+
+format:
+  revealjs:
+    theme: dark
+    transition: fade
+    slide-number: true
+    chalkboard: true
+    width: 1280
+    height: 720
