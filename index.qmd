@@ -1,94 +1,54 @@
 ---
 title: "Predicting Urban Pulse"
-subtitle: "Johnson Street Bridge Cyclist Traffic Forecasting Portfolio"
+subtitle: "An End-to-End Econometric and Machine Learning Framework for Traffic Forecasting"
 author: "Tyler Stigall"
 date: "2026-07-07"
-format: 
-  revealjs:
-    footer: "GitHub Portfolio | Active Transportation Analytics"
+abstract: |
+  This technical report details the development, backtesting, and out-of-sample deployment of competing predictive architectures to forecast daily cyclist volumes on Victoria's Johnson Street Bridge infrastructure. By evaluating a baseline OLS model against a classical econometric ARIMAX framework and a Gradient Boosted Trees architecture (XGBoost), this paper analyzes model resilience during seasonal demand regime shifts.
 ---
 
-## Executive Context
+## Executive Context & Objectives
 
-### Victoria's Critical Active Transportation Artery
-* The **Johnson Street Bridge** serves as a vital multi-use link connecting downtown Victoria with regional trail networks.
-* **Objective:** Build an end-to-end predictive pipeline to forecast daily cyclist volumes.
-* **Business Value:** Empower infrastructure management to optimize seasonal maintenance windows and accurately evaluate environmental transit ROI.
+The **Johnson Street Bridge** serves as a critical active transportation artery in the Capital Regional District (CRD). For municipal planners and transit engineers, understanding ridership patterns is essential for optimizing winter maintenance windows, scheduling structural repairs, and justifying long-term infrastructure funding.
 
----
+The core objective of this project is to construct a reproducible data pipeline capable of digesting urban counter data and outputting high-precision, short-to-medium-term demand projections.
+
+::: {.callout-note}
+## Project Stack
+This entire analysis is fully reproducible and compiled using **R, XGBoost, the forecast library, and Quarto**. The structural logic is isolated across five atomic scripts within the repository ecosystem.
+:::
 
 ## Integrated Data Strategy
 
-::: {.columns}
+Our predictive pipeline synthesizes multiple distinct data channels:
 
-::: {.column width="50%"}
-### 📊 Ingestion & Features
-* **Ridership Baseline:** Automated daily counts extracted from the public Eco-Counter platform.
-* **Meteorological Regressors:** Historical and realized weather arrays (temperature, precipitation, wind speed) pulled directly via `openmeteo`.
-* **Calendar Controls:** Engineered indicator variables tracking day-of-week momentum and monthly seasonal shifts.
-:::
+1. **Ridership Baseline:** Automated daily cyclist counts extracted directly from the public Eco-Counter platform tracking the Johnson Street Multi-Use Pathway (MUD).
+2. **Meteorological Regressors:** Historical and realized weather arrays (including mean daily temperature, precipitation volume, and average wind speeds) integrated via the `openmeteo` API.
+3. **Feature Engineering:** Indicator variables mapping calendar anomalies, day-of-week demand patterns, and multi-week auto-regressive momentum components.
 
-::: {.column width="50%"}
-### 🛠️ Modeling Frameworks
-1. **Environmental Benchmark:** Ordinary Least Squares (OLS) Linear Regression.
-2. **Classical Econometrics:** ARIMAX(14, 1, 1)(1, 0, 0) capturing dynamic temporal auto-regressive lags.
-3. **Machine Learning:** Non-linear Gradient Boosted Trees via `xgboost`.
-:::
+## Analytical Methodology
 
-:::
+To robustly evaluate predictive capacity, we implement a multi-model bake-off framework:
 
----
+* **Ordinary Least Squares (OLS):** Established strictly as an environmental baseline to isolate the flat, linear impact of weather variations without temporal memory.
+* **ARIMAX(14, 1, 1)(1, 0, 0):** A classical econometric time-series framework engineered to track structural weekly momentum and autoregressive errors.
+* **XGBoost:** A non-linear machine learning architecture designed to capture complex feature interactions, such as sudden weather-driven "demand cliffs."
 
-## The Out-of-Sample Challenge
+## Out-of-Sample Production Results
 
-* **The Setup:** Models were trained on historical records and pushed forward to generate true out-of-sample forecasts for November.
-* **The Dynamic Shift:** Transitioning from early autumn to late November represents a severe weather-driven demand regime shift.
-* **The Forecasting Test:** Can traditional time-series memory adapt to sudden environmental changes, or does machine learning offer better structural flexibility?
+The models were fully trained on historical data and deployed to generate true out-of-sample predictions for the entire month of November 2025. Evaluating these forecasts against realized counts on the bridge yielded a definitive performance hierarchy:
 
----
-
-## November Production Metrics
-
-Our true production evaluation against real-world bridge data yielded a definitive winner:
-
-| Model Architecture | MAE (Daily) | RMSE | MAPE (%) | Status |
+| Model Architecture | MAE (Daily Riders) | RMSE | MAPE (%) | Production Status |
 |:---|:---:|:---:|:---:|:---:|
-| **XGBoost (Machine Learning)** | **233.18** | **285.63** | **14.99%** | 🏆 **Deployed** |
-| ARIMAX(14, 1, 1) | 287.36 | 370.29 | 20.21% | Baseline |
-| Linear Regression (OLS) | 318.65 | 418.81 | 21.51% | Benchmark |
+| **XGBoost (Machine Learning)** | **233.18** | **285.63** | **14.99%** | 🏆 **Selected for Deployment** |
+| ARIMAX(14, 1, 1)(1, 0, 0) | 287.36 | 370.29 | 20.21% | Deployed Baseline |
+| Linear Regression (OLS) | 318.65 | 418.81 | 21.51% | Environmental Benchmark |
 
-: November 2025 Model Performance Comparison Table
-
----
+: November 2025 Production Performance Metrics
 
 ## Production Horizon Evaluation
 
-::: {.columns}
+The visualization below illustrates the transition from the high-volume October training baseline into the true out-of-sample November forecast period.
 
-::: {.column width="40%"}
-### Key Takeaways
-* **XGBoost Dominated:** Achieved a production accuracy of **85.01%** (14.99% MAPE).
-* **The ARIMAX Limitation:** Suffered from an upward bias because its autoregressive lag structure was heavily anchored to high-volume autumn momentum.
-* **Regime Shift Resilience:** XGBoost stripped away historical inertia and successfully mapped the exact non-linear weather thresholds where daily traffic collapses.
-:::
-
-::: {.column width="60%"}
+```{#fig-forecast}
 ![](results/production_forecast_with_context.png){fig-align="center" width="100%"}
-:::
-
-:::
-
----
-
-## Operational Execution
-
-### Real-World Business Value
-* **Risk Management:** Utilizing XGBoost prevents severe over-capacity resource allocation errors during sudden, weather-driven "demand cliffs."
-* **Reproducible Infrastructure:** The complete R execution logic spans data collection to evaluation across five clean, atomic scripts.
-* **Live Storefront Deployment:** Automatically compiled via Quarto and continually hosted for executive stakeholder tracking.
-
-## Questions & Discussion
-<br><br>
-::: {style="text-align: center; font-family: monospace; font-size: 1.5em; color: #3b82f6;"}
-github.com/tylerstigall/johnson-st-bridge-forecast
-:::
