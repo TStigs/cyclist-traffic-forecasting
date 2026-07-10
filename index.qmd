@@ -17,16 +17,21 @@ execute:
 
 ## Project Overview
 
-This report details a time series forecasting project designed to predict daily cyclist volumes. The pipeline executes data preparation, model training, validation backtesting, and true out-of-sample forecasting for November 2025.
+This report details a time series forecasting project designed to predict daily
+cyclist volumes on Johnston St. Bridge in Victoria, BC. The pipeline executes data preparation, model training, validation backtesting, and true out-of-sample forecasting for 30 
+days in November 2025.
 
-### Setup and Dependencies
+### Victoria's Critical Active Transportation Artery
+* The **Johnson Street Bridge** serves as a vital multi-use link connecting downtown Victoria with regional trail networks.
+* **Objective:** Build an end-to-end predictive pipeline to forecast daily cyclist volumes.
+* **Business Value:** Empower infrastructure management to optimize seasonal maintenance windows and accurately evaluate environmental transit ROI.
 
-The following libraries are required for data manipulation, weather API integration, modeling, and visualization[cite: 1, 2, 3, 4, 5].
 
 ```{r}
 #| label: data-preparation
 #| include: false
 #| results: "hide"
+#| cache: true
 
 source("scripts/01_data_preparation.R")
 
@@ -38,6 +43,7 @@ source("scripts/01_data_preparation.R")
 #| label: arimax-training
 #| include: false
 #| results: "hide"
+#| cache: true
 
 source("scripts/02_model_training.R")
 
@@ -48,6 +54,7 @@ source("scripts/02_model_training.R")
 #| label: validation-backtest
 #| include: false
 #| results: "hide"
+#| cache: true
 
 source("scripts/03_model_testing.R")
 ```
@@ -57,6 +64,7 @@ source("scripts/03_model_testing.R")
 #| label: future-forecast
 #| results: hide
 #| include: false
+#| cache: true
 
 source("scripts/04_future_forecast.R")
 ```
@@ -65,8 +73,44 @@ source("scripts/04_future_forecast.R")
 ```{r}
 #| label: final-evaluation
 #| include: false
+#| cache: true
 
 source("scripts/05_forecast_evaluations.R")
+```
+
+
+## Preliminaries
+Below is a baseline visualization of the daily cyclist counts recorded in our primary dataset.
+
+```{r}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 5
+
+library(ggplot2)
+library(scales)
+
+# Get the start date of the data
+start_date <- min(bikes$date, na.rm = TRUE)
+
+# Build explicit yearly breaks starting from that date
+custom_breaks <- c(start_date, as.Date(c("2021-01-01", "2022-01-01", "2023-01-01", "2024-01-01", "2025-01-01", "2026-01-01")))
+
+ggplot(bikes, aes(x = date, y = cyclists)) +
+  geom_line(color = "steelblue", size = 0.6) +
+  scale_x_date(
+    expand = expansion(mult = c(0, 0.05)),
+    breaks = custom_breaks,               
+    labels = date_format("%Y")            
+  ) + 
+  labs(
+    title = "Daily Cyclist Volume",
+    subtitle = "Historical Baseline Observations",
+    x = "Date",
+    y = "Number of Cyclists"
+  ) +
+  theme_minimal(base_size = 13)
+
 ```
 
 
