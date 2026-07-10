@@ -155,7 +155,7 @@ ggplot(plot_long, aes(x = date, y = Cyclists, group = Model)) +
 Discuss the plot.
 
 
-## Forecast
+## Forecasting
 
 Now to the fun part.
 
@@ -180,7 +180,7 @@ ggplot(full_plot_df, aes(x = date, y = Cyclists, group = Model)) +
 
 ### Evaluating Forecasts
 
-How did the models preform? This is answered in a battery of metrics. We should
+How did the models preform? This is answered with a battery of metrics. We should
 not put too much stake in any single metric, but take into account all of our metrics.
 
 If we consider the task of forecasting as if we were medical doctors, metrics are just symptoms of the model's health (performance), and we need to factor several symptoms (metrics) together to get a holistic diagnosis of the model's health (performance). We combine these evaluation metrics with our diagnostic
@@ -216,6 +216,95 @@ This is a very intuitive metric, since being off by 10% on average gives a bette
 The division by $y_t$ is scary, since if our observations are close to 0, we can get a huge error. We also
 need to make sure that $y_t$ is never 0, since we can't divide by 0. In our case, we are safe, since we have no days with 0 cyclists.
 
+
+### How did the models perform?
+
+
+The out-of-sample evaluation metrics for the three models are summarized in the table below. The metrics are calculated based on the forecasts made for November 2025, comparing the predicted cyclist volumes against the actual observed values.
+
+```{r}
+
+#| echo: false
+#| include: false
+
+library(gt)
+library(dplyr)
+
+# Convert the matrix into a clean dataframe for table formatting[cite: 5]
+metrics_df <- as.data.frame(final_metrics) %>%
+  tibble::rownames_to_column(var = "Model Architecture")
+
+# Create a professional HTML table
+metrics_df %>%
+  gt() %>%
+  tab_header(
+    title = "November 2025 Production Evaluation Results",
+    subtitle = "Johnson Street Bridge Daily Cyclist Volume Forecasts"
+  ) %>%
+  fmt_number(
+    columns = c(MAE, RMSE),
+    decimals = 2
+  ) %>%
+  fmt_number(
+    columns = MAPE,
+    decimals = 2,
+    pattern = "{x}%"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    column_labels.background.color = "#f8f9fa", # 🔥 Fixed the argument name here
+    heading.title.font.size = px(18)
+  )
+```
+
+
+Across all three metrics, XGBoost outperformed both the OLS and ARIMAX models. 
+The RMSE of 285.63 is quite close to its MAE of 233.18, suggesting that isn't prone
+to extreme misses. With an MAPE of just under 15%, it indicates that the model's predictions are, on average, within 15% of the actual observed cyclist volumes. Considering the forecasting window of 30 days,
+this should be considered quite accurate. 
+
+The ARIMAX model, while performing better than OLS, still lagged behind XGBoost, indicating that the inclusion of exogenous variables alone was not sufficient to achieve optimal forecasting accuracy.
+
+One important note with this sort of open forecasting, where we depend on a forecast
+for one or more of our independent variables such as weather, it that the accuraccy 
+of each model is contingent on the accuracy of the forecasts for those independent variables. If the weather forecast is off, then our cyclist volume forecast will also be off. This is a limitation of any model that relies on exogenous inputs.
+
+
+Now consider how close the forecasts were between XGBoost and OLS.
+
+
+```{r}
+
+ggplot(plot_data, aes(x = date, y = Cyclists, group = Model)) +
+  geom_line(aes(color = Model, linetype = Model, size = Model)) +
+  scale_color_manual(values = c("Actual" = "black", "OLS" = "blue", "XGBoost" = "darkgreen", "ARIMAX" = "red")) +
+  scale_linetype_manual(values = c("Actual" = "solid", "OLS" = "dotdash", "XGBoost" = "dashed", "ARIMAX" = "dashed")) +
+  scale_size_manual(values = c("Actual" = 1.2, "OLS" = 0.8, "XGBoost" = 1, "ARIMAX" = 1)) +
+  labs(
+    title = "Forecast Evaluation: Actual vs Predicted Cyclist Counts",
+    subtitle = "November 2025 Out-of-Sample Model Comparison",
+    x = "Date",
+    y = "Number of Cyclists"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+```
+
+
+
+Both architectures track the same sudden dips and peaks across the November production window because they share a fundamental reliance on identical exogenous features. Unlike the ARIMAX framework, which derives its momentum from its own historical lags, both OLS and XGBoost evaluate each day based purely on the structural conditions provided to them, such as calendar indicators and daily weather variations. When a sharp weather event or a weekend shift occurs, both models immediately react to the exact same external shocks.
+
+This overlapping behavior strongly suggests that the primary relationships driving daily cyclist volumes are predominantly linear and additive in nature. While XGBoost is a highly flexible and is able to capture non-linear interactions, it will approximate simpler, linear-like step functions if the true underlying data-generating process does not demand high-dimensional complexity.
+
+The fact that XGBoost yields a superior set of evaluation metrics despite looking visually twins with OLS indicates that it is not discovering an entirely separate seasonal trend, but is instead handling the extreme boundaries of the data more effectively. Where the rigid assumptions of OLS cause it to overshoot or over-penalize on volatile days, the tree-based structure of XGBoost keeps its predictions more tightly bounded, capturing subtle thresholds in commuter behavior without losing the shared structural signal.
 
 
 
