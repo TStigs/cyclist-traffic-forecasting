@@ -115,3 +115,110 @@ ggplot(bikes, aes(x = date, y = cyclists)) +
 
 
 
+## Backtesting
+
+In time series forecasting, we can’t rely on a standard train-test split where you randomly shuffle your data. Because time has a strict direction, shuffling would let your model "peek into the future" to predict the past, known as data leakage.
+
+That is where backtesting comes in. It is the process of testing a forecasting model's predictive accuracy by simulating how it would have performed historically using actual past data.
+
+It is a critical step in time series analysis, as it allows us to evaluate the model's performance on unseen data and ensure that it generalizes well to future observations. While a model that backtests well is not guaranteed to perform well in the future, it is a strong indicator of its potential effectiveness.
+
+Additionally, it helps prevent overfitting, as we can assess how well the model captures underlying patterns without being overly influenced by noise in the training data.
+
+
+```{r}
+#| echo: false
+
+
+ggplot(plot_long, aes(x = date, y = Cyclists, group = Model)) +
+  geom_line(aes(color = Model, linetype = Model, size = Model)) +
+  scale_color_manual(values = c("Actual" = "black", "OLS" = "blue", "XGBoost" = "darkgreen", "ARIMAX" = "red")) +
+  scale_linetype_manual(values = c("Actual" = "solid", "OLS" = "dotdash", "XGBoost" = "dashed", "ARIMAX" = "dashed")) +
+  scale_size_manual(values = c("Actual" = 1.2, "OLS" = 0.8, "XGBoost" = 1, "ARIMAX" = 1)) +
+  labs(
+    title = "Model Backtesting Evaluation",
+    subtitle = "Comparing Classical Econometrics to Machine Learning Architectures",
+    x = "Date",
+    y = "Number of Cyclists"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+
+
+```
+
+
+Discuss the plot.
+
+
+## Forecast
+
+Now to the fun part.
+
+
+```{r}
+#| echo: false
+# Plot with a vertical dashed line separating history from forecast
+ggplot(full_plot_df, aes(x = date, y = Cyclists, group = Model)) +
+  geom_line(aes(color = Model, linetype = Model, size = Model)) +
+  geom_vline(xintercept = as.numeric(as.Date("2025-11-01")), linetype = "dotted", color = "gray40", size = 1) +
+  annotate("text", x = as.Date("2025-10-20"), y = 3400, label = "Past Observations", fontface = "italic") +
+  annotate("text", x = as.Date("2025-11-10"), y = 3200, label = "Forecast", fontface = "italic") +
+  scale_color_manual(values = c("Actual" = "black", "OLS" = "blue", "XGBoost" = "darkgreen", "ARIMAX" = "red")) +
+  scale_linetype_manual(values = c("Actual" = "solid", "OLS" = "dotdash", "XGBoost" = "dashed", "ARIMAX" = "dashed")) +
+  scale_size_manual(values = c("Actual" = 1.1, "OLS" = 0.8, "XGBoost" = 0.9, "ARIMAX" = 0.9)) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Daily Cyclist Counts: Past and Forecast", x = "Date", y = "Cyclists")
+
+```
+
+
+
+### Evaluating Forecasts
+
+How did the models preform? This is answered in a battery of metrics. We should
+not put too much stake in any single metric, but take into account all of our metrics.
+
+If we consider the task of forecasting as if we were medical doctors, metrics are just symptoms of the model's health (performance), and we need to factor several symptoms (metrics) together to get a holistic diagnosis of the model's health (performance). We combine these evaluation metrics with our diagnostic
+testing for model assumptions to get a complete picture of model health.
+
+The metrics we will use are:
+
+Mean Absolute Error (MAE) measures the average magnitude of the errors in a set of forecasts, without considering their direction. It is the average of the absolute differences between the actual values ($y_t$) and predicted values ($\hat{y}_t$). The formula for MAE is: 
+
+$$MAE = \frac{1}{n} \sum_{t=1}^{n} |y_t - \hat{y}_t|$$
+
+This treats all erros linearly, meaning that an error of say 50 cyclists is considered twice as bad as an error of 25 cyclists.
+
+One benefit is that we are using the exact units as the original data, which makes it easy to interpret. However, it does not penalize larger errors more than smaller ones. So, if our model is way off when there is lots of rain, we don't penalize that specifically.
+
+
+Root Mean Squared Error (RMSE) squares the errors before averaging them, and then takes the square root of the final result.
+
+$$RMSE = \sqrt{\frac{1}{n} \sum_{t=1}^{n} (y_t - \hat{y}_t)^2}$$
+The Intuition: Because the errors are squared before they are averaged, RMSE puts a much heavier penalty on large errors. An error of 10 results in a penalty of 100, while an error of 5 is only 25.
+
+Like MAE, it expresses the error in the original data units. However, it heavily penalize large, systemic misses or unexpected spikes. If our MAE is better than our RMSE, it indicates that we have a few large misses that are dragging down our RMSE.
+
+A single massive outlier during an unusual event (like a holiday or a sudden data anomaly) can skew the RMSE upward, making a generally excellent model look terrible.
+
+Mean Absolute Percentage Error (MAPE) solves the scale problem by expressing the error as a percentage of the actual values. Rather than looking at nominal values, it looks at relative values. It is the average of the absolute percentage differences between the actual values ($y_t$) and predicted values ($\hat{y}_t$). 
+
+$$MAPE = \frac{100\%}{n} \sum_{t=1}^{n} \left| \frac{y_t - \hat{y}_t}{y_t} \right|$$
+This gives an idea about how far off we are, on average. Being off by 10 units when the actual value is 100 (10% error) is treated the same as being off by 100 units when the actual value is 1,000.
+
+This is a very intuitive metric, since being off by 10% on average gives a better clue than 10 units. It also lets you compare model performance across entirely different time series with different scales.
+
+The division by $y_t$ is scary, since if our observations are close to 0, we can get a huge error. We also
+need to make sure that $y_t$ is never 0, since we can't divide by 0. In our case, we are safe, since we have no days with 0 cyclists.
+
+
+
+
+
+
+
