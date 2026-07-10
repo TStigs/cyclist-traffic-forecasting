@@ -1,81 +1,73 @@
 ---
 title: "Predicting Urban Pulse"
-subtitle: "An End-to-End Econometric and Machine Learning Framework for Traffic Forecasting"
+subtitle: "Forecasting Daily Cyclist Volumes on the Johnson Street Bridge"
 author: "Tyler Stigall"
-date: "2026-07-07"
-abstract: |
-  This technical report details the development, backtesting, and out-of-sample deployment of competing predictive architectures to forecast daily cyclist volumes on Victoria's Johnson Street Bridge infrastructure. By evaluating a baseline OLS model against a classical econometric ARIMAX framework and a Gradient Boosted Trees architecture (XGBoost), this paper analyzes model resilience during seasonal demand regime shifts.
+date: today
+format: 
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+    code-fold: true
+    theme: cosmo
+execute:
+  warning: false
+  message: false
 ---
 
-## Executive Context & Objectives
+## Project Overview
 
-The **Johnson Street Bridge** serves as a critical active transportation artery in the Capital Regional District (CRD). For municipal planners and transit engineers, understanding ridership patterns is essential for optimizing winter maintenance windows, scheduling structural repairs, and justifying long-term infrastructure funding.
+This report details a time series forecasting project designed to predict daily cyclist volumes. The pipeline executes data preparation, model training, validation backtesting, and true out-of-sample forecasting for November 2025.
 
-The core objective of this project is to construct a reproducible data pipeline capable of digesting urban counter data and outputting high-precision, short-to-medium-term demand projections.
+### Setup and Dependencies
 
-::: {.callout-note}
-## Project Stack
-This entire analysis is fully reproducible and compiled using **R, XGBoost, the forecast library, and Quarto**. The structural logic is isolated across five atomic scripts within the repository ecosystem.
-:::
-
-## Integrated Data Strategy
-
-Our predictive pipeline synthesizes multiple distinct data channels:
-
-1. **Ridership Baseline:** Automated daily cyclist counts extracted directly from the public Eco-Counter platform tracking the Johnson Street Multi-Use Pathway (MUD).
-2. **Meteorological Regressors:** Historical and realized weather arrays (including mean daily temperature, precipitation volume, and average wind speeds) integrated via the `openmeteo` API.
-3. **Feature Engineering:** Indicator variables mapping calendar anomalies, day-of-week demand patterns, and multi-week auto-regressive momentum components.
-
-## Analytical Methodology
-
-To robustly evaluate predictive capacity, we implement a multi-model bake-off framework:
-
-* **Ordinary Least Squares (OLS):** Established strictly as an environmental baseline to isolate the flat, linear impact of weather variations without temporal memory.
-* **ARIMAX(14, 1, 1)(1, 0, 0):** A classical econometric time-series framework engineered to track structural weekly momentum and autoregressive errors.
-* **XGBoost:** A non-linear machine learning architecture designed to capture complex feature interactions, such as sudden weather-driven "demand cliffs."
-
-## Out-of-Sample Production Results
-
-The models were fully trained on historical data and deployed to generate true out-of-sample predictions for the entire month of November 2025. Evaluating these forecasts against realized counts on the bridge yielded a definitive performance hierarchy:
-
-| Model Architecture | MAE (Daily Riders) | RMSE | MAPE (%) | Production Status |
-|:---|:---:|:---:|:---:|:---:|
-| **XGBoost (Machine Learning)** | **233.18** | **285.63** | **14.99%** | 🏆 **Selected for Deployment** |
-| ARIMAX(14, 1, 1)(1, 0, 0) | 287.36 | 370.29 | 20.21% | Deployed Baseline |
-| Linear Regression (OLS) | 318.65 | 418.81 | 21.51% | Environmental Benchmark |
-
-: November 2025 Production Performance Metrics
-
-## Production Horizon Evaluation
-
-The visualization below illustrates the transition from the high-volume October training baseline into the true out-of-sample November forecast period.
+The following libraries are required for data manipulation, weather API integration, modeling, and visualization[cite: 1, 2, 3, 4, 5].
 
 ```{r}
-#| label: fig-forecast
-#| fig-cap: "November 2025 Production Forecast Evaluation vs. October Baseline"
-#| out-width: "100%"
-#| echo: false
+#| label: data-preparation
+#| include: false
+#| results: "hide"
 
-knitr::include_graphics("results/forecast_horizon.png")
+source("scripts/01_data_preparation.R")
 
 ```
 
-### Strategic Deep-Dive: Managing Regime Shifts
 
-Analyzing the out-of-sample visual tracking reveals a classic forecasting phenomenon:
 
-* **The ARIMAX Limitation:** The econometric model systematically over-projected traffic during mid-November. Because it relies heavily on historical lags, its autoregressive structure dragged the high-volume momentum of September and October forward into late autumn, making it slow to adapt to seasonal shifts.
-* **The XGBoost Advantage:** XGBoost achieved an impressive operational accuracy of **85.01% (14.99% MAPE)**. By stripping away historical inertia and evaluating features non-linearly, it immediately recognized the exact temperature and rainfall thresholds where casual commuter traffic drops off entirely. 
+```{r}
+#| label: arimax-training
+#| include: false
+#| results: "hide"
 
-## Operational Execution & Business Impact
+source("scripts/02_arimax_training.R")
 
-From a revenue management and operational standpoint, deploying **XGBoost** over classical time-series frameworks provides significant commercial value:
+```
 
-* **Risk Mitigation:** Accurately mapping sudden demand drops protects municipal operations from over-allocating maintenance teams or contracted resources during severe weather anomalies.
-* **Data-Driven Policy:** Quantifying the exact impact of environmental factors allows stakeholders to accurately evaluate transit utility and substantiate long-term infrastructure investment strategies.
 
-***
+```{r}
+#| label: validation-backtest
+#| include: false
+#| results: "hide"
 
-### Open-Source Repository
-The underlying data processing, modeling, and evaluation codebase is fully accessible for audit and replication at:  
-[github.com/tylerstigall/johnson-st-bridge-forecast](https://github.com/tylerstigall/johnson-st-bridge-forecast)
+source("scripts/03_model_testing.R")
+```
+
+
+```{r}
+#| label: future-forecast
+#| results: hide
+#| include: false
+
+source("scripts/04_future_forecast.R")
+```
+
+
+```{r}
+#| label: final-evaluation
+#| include: false
+
+source("scripts/05_forecast_evaluations.R")
+```
+
+
+
