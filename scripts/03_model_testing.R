@@ -55,6 +55,8 @@ fit_backtest <- Arima(
   method = "CSS-ML"
 )
 
+val_forecast <- forecast(fit_backtest, xreg = xreg_val, h = holdout_days)
+
 # 5. Generate Alternative Baseline Models for Comparison
 # ------------------------------------------------------------------------------
 # --- Model A: XGBoost (Machine Learning Framework) ---
