@@ -3,11 +3,11 @@ project:
   output-dir: docs
 
 website:
-  title: "Tyler Stigall Portfolio"
+  title: "Tyler Stigall"
   navbar:
     background: primary
     left:
-      - text: "Johnson St. Bridge Forecast"
+      - text: "Johnson St. Bridge Daily Cyclist Count Forecast"
         href: index.html
 
 format:
