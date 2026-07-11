@@ -61,6 +61,21 @@ modelsummary(
   title = "ARIMAX (14,1,1)(1,0,0)"
 )
 
+
+### Diagnostic tests
+
+## ACF plot
+# New Section: Residual Diagnostics (ACF & PACF)
+# ------------------------------------------------------------------------------
+# Save a consolidated diagnostic plot containing residual series, ACF, and PACF
+png("results/residual_diagnostics.png", width = 800, height = 600)
+ggtsdisplay(residuals(fit_arimax), main = "ARIMAX Residual Diagnostics")
+dev.off()
+
+# Run a formal portmanteau test to check for remaining autocorrelation
+checkresiduals(fit_arimax)
+
+
 # 4. Forecasting & Evaluation
 # ------------------------------------------------------------------------------
 # We use nrow(test_data) which will now correctly be 24 days.
@@ -95,3 +110,6 @@ ggplot(plot_df, aes(x = date)) +
   coord_cartesian(xlim = c(as.Date("2025-09-01"), max(plot_df$date)))
 
 ggsave("results/forecast_plot.png", width = 8, height = 5)
+
+
+

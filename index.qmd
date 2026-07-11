@@ -13,19 +13,27 @@ format:
 execute:
   warning: false
   message: false
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
 ## Project Overview
 
-This report details a time series forecasting project designed to predict daily
-cyclist volumes on Johnston St. Bridge in Victoria, BC. The pipeline executes data preparation, model training, validation backtesting, and out-of-sample forecasting for 30 
-days in November 2025.
+This report details a time series forecasting project designed to
+predict daily cyclist volumes on Johnston St. Bridge in Victoria, BC.
+The pipeline executes data preparation, model training, validation
+backtesting, and out-of-sample forecasting for 30 days in November 2025.
 
 ### Victoria's Critical Active Transportation Artery
-* The **Johnson Street Bridge** serves as a vital multi-use link connecting downtown Victoria with regional trail networks.
-* **Objective:** Build an end-to-end predictive pipeline to forecast daily cyclist volumes.
-* **Business Value:** Empower infrastructure management to optimize seasonal maintenance windows and accurately evaluate environmental transit ROI.
 
+-   The **Johnson Street Bridge** serves as a vital multi-use link
+    connecting downtown Victoria with regional trail networks.
+-   **Objective:** Build an end-to-end predictive pipeline to forecast
+    daily cyclist volumes.
+-   **Business Value:** Empower infrastructure management to optimize
+    seasonal maintenance windows and accurately evaluate environmental
+    transit ROI.
 
 ```{r}
 #| label: data-preparation
@@ -37,18 +45,14 @@ source("scripts/01_data_preparation.R")
 
 ```
 
-
-
 ```{r}
 #| label: arimax-training
 #| include: false
 #| results: "hide"
-#| cache: true
 
 source("scripts/02_model_training.R")
 
 ```
-
 
 ```{r}
 #| label: validation-backtest
@@ -56,10 +60,8 @@ source("scripts/02_model_training.R")
 #| results: "hide"
 #| cache: true
 
-
 source("scripts/03_model_testing.R")
 ```
-
 
 ```{r}
 #| label: future-forecast
@@ -70,7 +72,6 @@ source("scripts/03_model_testing.R")
 source("scripts/04_future_forecast.R")
 ```
 
-
 ```{r}
 #| label: final-evaluation
 #| include: false
@@ -79,15 +80,12 @@ source("scripts/04_future_forecast.R")
 source("scripts/05_forecast_evaluations.R")
 ```
 
-
 ## Preliminaries
 
 ### Background
 
-
-
-
-Below is a baseline visualization of the daily cyclist counts recorded in our primary dataset.
+Below is a baseline visualization of the daily cyclist counts recorded
+in our primary dataset.
 
 ```{r}
 #| echo: false
@@ -120,32 +118,63 @@ ggplot(bikes, aes(x = date, y = cyclists)) +
 
 ```
 
-
 ### Model/Variable Selection
 
-The value of forecasting does not have to just derive from prediction accuracy. 
-Forecasting does not have to be independent of an attempt of causal inference, 
-and some cases gives opportunity to be an extension of the modelling 
-process. In the case of forecasting cyclist traffic, our goal is not just to give an accurate prediction of
-the number of cyclists on a specific day, but to understand the underlying
-mechanisms that are driving cyclist traffic. 
+The value of forecasting does not have to just derive from prediction
+accuracy. Forecasting does not have to be independent of an attempt of
+causal inference, and some cases gives opportunity to be an extension of
+the modelling process. In the case of forecasting cyclist traffic, our
+goal is not just to give an accurate prediction of the number of
+cyclists on a specific day, but to understand the underlying mechanisms
+that are driving cyclist traffic.
 
-This allows for the creation of policies that adapt to the underlying mechanisms that may shift 
-in response to an exogenous shock, such as expanded bike infrastructure. This will
-help bridge the common pitfall of structural breaks rendering an accurate model 
-nearly useless.If we can understand the underlying mechanisms that drive cyclist demand, we can
-better adapt to these structural breaks and create more robust forecasts.
+This allows for the creation of policies that adapt to the underlying
+mechanisms that may shift in response to an exogenous shock, such as
+expanded bike infrastructure. This will help bridge the common pitfall
+of structural breaks rendering an accurate model nearly useless.If we
+can understand the underlying mechanisms that drive cyclist demand, we
+can better adapt to these structural breaks and create more robust
+forecasts.
 
-To address this, we will use Linear Regression (OLS) as it is highly interpretable.
+To address this, we will use Linear Regression (OLS) as it is highly
+interpretable.
 
-One issue with OLS for causal inference in time series is, the assumption that the error on any given day ($\epsilon_t$) tells you nothing about the error on the next day. This is highly 
-unlikely in time series and this violation is serial correlation, or that other 
-days will impact today. This will deflate the standard errors, making our coefficients
-seem more statistically significant than they are. 
+One issue with OLS for causal inference in time series is, the
+assumption that the error on any given day ($\epsilon_t$) tells you
+nothing about the error on the next day. This is highly unlikely in time
+series and this violation is serial correlation, or that other days will
+impact today. This will deflate the standard errors, making our
+coefficients seem more statistically significant than they are.
 
-With this in mind, it is not a large issue for forecasting and we won't make 
-any causal claims.
+With this in mind, it is not a large issue for forecasting and we won't
+make any causal claims.
 
+###  OLS
+To begin, I estimate an OLS model with exogenous weather variables and
+indicators for days and months. I chose March as the baseline month
+since roughly half of the months were higher or below, and the same for
+Friday. Unlike heavy rail or closed motor vehicles, cyclists are
+directly exposed to the surrounding climate. This exposure introduces
+high-dimensional volatility; microclimatic shifts in rainfall duration,
+ambient temperature bounds, wind speeds, and even daylight changes may
+create massive fluctuations in cyclist demand. Furthermore, research
+demonstrates that even incorrect public weather forecasts or heavy cloud
+visuals actively alter a cyclist's morning modal choice before they
+leave the house. Therefore, we will include weather data, which will be
+forecasted weather data, and other exogenous controls to capture these
+environmental and temporal effects.
+
+A few interesting patterns emerge. Firstly, it seems that the weather
+coeffieints are consistent with theory. Ridership increases with
+temperature (though here it is linear though likely is quadratic), and
+decreases with precipitation and wind. This is consistent across our
+months, as spring and summer months have higher ridership than that of
+those in the winter months.
+
+If you look at just the day section, it looks like this route is
+primarily used by commuters, as the weekends are lower than Friday but most 
+weekdays are associated with higher cyclist counts, on average. This is an important observation in itself, as it suggests targeting commuter ridership uses this infrastructure more than
+recreational riders.
 
 ```{r}
 #| label: categorized-ols-table-with-fit
@@ -236,23 +265,106 @@ interactive_df %>%
   )
 ```
 
+\
 
 
-Unlike heavy rail or closed motor vehicles, cyclists are directly exposed to the surrounding climate. This exposure introduces high-dimensional volatility; microclimatic shifts in rainfall duration, ambient temperature bounds, wind speeds, and even daylight changes may create massive fluctuations in cyclist demand. Furthermore, research demonstrates that even incorrect public weather forecasts or heavy cloud visuals actively alter a cyclist's morning modal choice before they leave the house. Therefore, we will include weather data, which will be forecasted weather data, and other exogenous controls to capture these environmental and temporal effects.
+Forecasting cyclist counts requires a statistical framework that can handle both historical momentum and external disruptions. The ARIMAX model, which stands for AutoRegressive Integrated Moving Average with Exogenous Inputs, is an extension of standard time series modeling.
 
- 
+The autoregressive part captures the internal momentum, meaning that the number of riders on a trail today is often heavily related to how many people were riding yesterday. The integrated component applies differencing to stabilize the data, attempting to solve the serial correlation, stripping out long-term trends or seasonal shifts so the statistical properties remain constant over time. The moving average section corrects for sudden, short-term shocks to the system, like a minor traffic delay or a one-off event, by analyzing past forecast errors. Finally, the exogenous inputs act as the external anchors, allowing the model to incorporate outside datasets directly into the mathematical equation.
+
+The foundational step involves checking for stationarity, typically via an Augmented Dickey-Fuller test, to ensure the data does not exhibit a continuous upward or downward drift that could bias our coefficients.
+
+Once the model is fitted, the focus shifts entirely to the residuals, which are the differences between the predicted counts and the actual observed numbers. These residuals should behave as white noise, meaning they are completely random, unbiased, and contain no lingering information.
+
+
+
+
+Now, the diagnostic testing for the ARIMAX model.
+
+
+```{r}
+#| label: arimax-diagnostics
+#| echo: false
+#| fig-width: 10
+#| fig-height: 6
+#| message: false
+#| warning: false
+
+library(forecast)
+
+# Generate a unified layout displaying residual trends alongside ACF and PACF plots
+ggtsdisplay(
+  residuals(fit_arimax), 
+  main = "ARIMAX Residual Diagnostic Architecture",
+  theme = theme_minimal(base_size = 13)
+)
+
+```
+
+
+```{r}
+#| label: residual-normality-curve
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+#| message: false
+#| warning: false
+
+library(ggplot2)
+
+# Extract residuals and convert to a clean data frame
+res_data <- data.frame(Residuals = as.numeric(residuals(fit_arimax)))
+
+# Calculate baseline metrics for the normal curve overlay
+res_mean <- mean(res_data$Residuals, na.rm = TRUE)
+res_sd   <- sd(res_data$Residuals, na.rm = TRUE)
+
+ggplot(res_data, aes(x = Residuals)) +
+  # Plot empirical density histogram
+  geom_histogram(aes(y = after_stat(density)), bins = 40, fill = "steelblue", alpha = 0.7, color = "white") +
+  # Overlay the theoretical normal bell curve
+  stat_function(
+    fun = dnorm, 
+    args = list(mean = res_mean, sd = res_sd), 
+    color = "darkred", 
+    size = 1.2
+  ) +
+  labs(
+    title = "ARIMAX Residual Distribution",
+    subtitle = "Empirical Density vs. Theoretical Normal Curve",
+    x = "Model Residuals (Error Magnitude)",
+    y = "Density",
+    caption = "Blue Bars = Empirical Residuals | Red Curve = Fitted Normal Distribution"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.title = element_text(face = "bold")
+  )
+
+```
 
 
 ## Backtesting
 
-In time series forecasting, we can’t rely on a standard train-test split where you randomly shuffle your data. Because time has a strict direction, shuffling would let your model "peek into the future" to predict the past, known as data leakage.
+In time series forecasting, we can’t rely on a standard train-test split
+where you randomly shuffle your data. Because time has a strict
+direction, shuffling would let your model "peek into the future" to
+predict the past, known as data leakage.
 
-That is where backtesting comes in. It is the process of testing a forecasting model's predictive accuracy by simulating how it would have performed historically using actual past data.
+That is where backtesting comes in. It is the process of testing a
+forecasting model's predictive accuracy by simulating how it would have
+performed historically using actual past data.
 
-It is a critical step in time series analysis, as it allows us to evaluate the model's performance on unseen data and ensure that it generalizes well to future observations. While a model that backtests well is not guaranteed to perform well in the future, it is a strong indicator of its potential effectiveness.
+It is a critical step in time series analysis, as it allows us to
+evaluate the model's performance on unseen data and ensure that it
+generalizes well to future observations. While a model that backtests
+well is not guaranteed to perform well in the future, it is a strong
+indicator of its potential effectiveness.
 
-Additionally, it helps prevent overfitting, as we can assess how well the model captures underlying patterns without being overly influenced by noise in the training data.
-
+Additionally, it helps prevent overfitting, as we can assess how well
+the model captures underlying patterns without being overly influenced
+by noise in the training data.
 
 ```{r}
 #| echo: false
@@ -279,14 +391,11 @@ ggplot(plot_long, aes(x = date, y = Cyclists, group = Model)) +
 
 ```
 
-
 Discuss the plot.
-
 
 ## Forecasting
 
 Now to the fun part.
-
 
 ```{r}
 #| echo: false
@@ -304,51 +413,79 @@ ggplot(full_plot_df, aes(x = date, y = Cyclists, group = Model)) +
 
 ```
 
-
-
 ### Evaluating Forecasts
 
-How did the models preform? This is answered with a battery of metrics. We should
-not put too much stake in any single metric, but take into account all of our metrics.
+How did the models preform? This is answered with a battery of metrics.
+We should not put too much stake in any single metric, but take into
+account all of our metrics.
 
-If we consider the task of forecasting as if we were medical doctors, metrics are just symptoms of the model's health (performance), and we need to factor several symptoms (metrics) together to get a holistic diagnosis of the model's health (performance). We combine these evaluation metrics with our diagnostic
-testing for model assumptions to get a complete picture of model health.
+If we consider the task of forecasting as if we were medical doctors,
+metrics are just symptoms of the model's health (performance), and we
+need to factor several symptoms (metrics) together to get a holistic
+diagnosis of the model's health (performance). We combine these
+evaluation metrics with our diagnostic testing for model assumptions to
+get a complete picture of model health.
 
 The metrics we will use are:
 
-Mean Absolute Error (MAE) measures the average magnitude of the errors in a set of forecasts, without considering their direction. It is the average of the absolute differences between the actual values ($y_t$) and predicted values ($\hat{y}_t$). The formula for MAE is: 
+Mean Absolute Error (MAE) measures the average magnitude of the errors
+in a set of forecasts, without considering their direction. It is the
+average of the absolute differences between the actual values ($y_t$)
+and predicted values ($\hat{y}_t$). The formula for MAE is:
 
 $$MAE = \frac{1}{n} \sum_{t=1}^{n} |y_t - \hat{y}_t|$$
 
-This treats all erros linearly, meaning that an error of say 50 cyclists is considered twice as bad as an error of 25 cyclists.
+This treats all erros linearly, meaning that an error of say 50 cyclists
+is considered twice as bad as an error of 25 cyclists.
 
-One benefit is that we are using the exact units as the original data, which makes it easy to interpret. However, it does not penalize larger errors more than smaller ones. So, if our model is way off when there is lots of rain, we don't penalize that specifically.
+One benefit is that we are using the exact units as the original data,
+which makes it easy to interpret. However, it does not penalize larger
+errors more than smaller ones. So, if our model is way off when there is
+lots of rain, we don't penalize that specifically.
 
+Root Mean Squared Error (RMSE) squares the errors before averaging them,
+and then takes the square root of the final result.
 
-Root Mean Squared Error (RMSE) squares the errors before averaging them, and then takes the square root of the final result.
+$$RMSE = \sqrt{\frac{1}{n} \sum_{t=1}^{n} (y_t - \hat{y}_t)^2}$$ The
+Intuition: Because the errors are squared before they are averaged, RMSE
+puts a much heavier penalty on large errors. An error of 10 results in a
+penalty of 100, while an error of 5 is only 25.
 
-$$RMSE = \sqrt{\frac{1}{n} \sum_{t=1}^{n} (y_t - \hat{y}_t)^2}$$
-The Intuition: Because the errors are squared before they are averaged, RMSE puts a much heavier penalty on large errors. An error of 10 results in a penalty of 100, while an error of 5 is only 25.
+Like MAE, it expresses the error in the original data units. However, it
+heavily penalize large, systemic misses or unexpected spikes. If our MAE
+is better than our RMSE, it indicates that we have a few large misses
+that are dragging down our RMSE.
 
-Like MAE, it expresses the error in the original data units. However, it heavily penalize large, systemic misses or unexpected spikes. If our MAE is better than our RMSE, it indicates that we have a few large misses that are dragging down our RMSE.
+A single massive outlier during an unusual event (like a holiday or a
+sudden data anomaly) can skew the RMSE upward, making a generally
+excellent model look terrible.
 
-A single massive outlier during an unusual event (like a holiday or a sudden data anomaly) can skew the RMSE upward, making a generally excellent model look terrible.
-
-Mean Absolute Percentage Error (MAPE) solves the scale problem by expressing the error as a percentage of the actual values. Rather than looking at nominal values, it looks at relative values. It is the average of the absolute percentage differences between the actual values ($y_t$) and predicted values ($\hat{y}_t$). 
+Mean Absolute Percentage Error (MAPE) solves the scale problem by
+expressing the error as a percentage of the actual values. Rather than
+looking at nominal values, it looks at relative values. It is the
+average of the absolute percentage differences between the actual values
+($y_t$) and predicted values ($\hat{y}_t$).
 
 $$MAPE = \frac{100\%}{n} \sum_{t=1}^{n} \left| \frac{y_t - \hat{y}_t}{y_t} \right|$$
-This gives an idea about how far off we are, on average. Being off by 10 units when the actual value is 100 (10% error) is treated the same as being off by 100 units when the actual value is 1,000.
+This gives an idea about how far off we are, on average. Being off by 10
+units when the actual value is 100 (10% error) is treated the same as
+being off by 100 units when the actual value is 1,000.
 
-This is a very intuitive metric, since being off by 10% on average gives a better clue than 10 units. It also lets you compare model performance across entirely different time series with different scales.
+This is a very intuitive metric, since being off by 10% on average gives
+a better clue than 10 units. It also lets you compare model performance
+across entirely different time series with different scales.
 
-The division by $y_t$ is scary, since if our observations are close to 0, we can get a huge error. We also
-need to make sure that $y_t$ is never 0, since we can't divide by 0. In our case, we are safe, since we have no days with 0 cyclists.
-
+The division by $y_t$ is scary, since if our observations are close to
+0, we can get a huge error. We also need to make sure that $y_t$ is
+never 0, since we can't divide by 0. In our case, we are safe, since we
+have no days with 0 cyclists.
 
 ### How did the models perform?
 
-
-The out-of-sample evaluation metrics for the three models are summarized in the table below. The metrics are calculated based on the forecasts made for November 2025, comparing the predicted cyclist volumes against the actual observed values.
+The out-of-sample evaluation metrics for the three models are summarized
+in the table below. The metrics are calculated based on the forecasts
+made for November 2025, comparing the predicted cyclist volumes against
+the actual observed values.
 
 ```{r}
 
@@ -389,21 +526,25 @@ metrics_df %>%
   )
 ```
 
+Across all three metrics, XGBoost outperformed both the OLS and ARIMAX
+models. The RMSE of 285.63 is quite close to its MAE of 233.18,
+suggesting that isn't prone to extreme misses. With an MAPE of just
+under 15%, it indicates that the model's predictions are, on average,
+within 15% of the actual observed cyclist volumes. Considering the
+forecasting window of 30 days, this should be considered quite accurate.
 
-Across all three metrics, XGBoost outperformed both the OLS and ARIMAX models. 
-The RMSE of 285.63 is quite close to its MAE of 233.18, suggesting that isn't prone
-to extreme misses. With an MAPE of just under 15%, it indicates that the model's predictions are, on average, within 15% of the actual observed cyclist volumes. Considering the forecasting window of 30 days,
-this should be considered quite accurate. 
+The ARIMAX model, while performing better than OLS, still lagged behind
+XGBoost, indicating that the inclusion of exogenous variables alone was
+not sufficient to achieve optimal forecasting accuracy.
 
-The ARIMAX model, while performing better than OLS, still lagged behind XGBoost, indicating that the inclusion of exogenous variables alone was not sufficient to achieve optimal forecasting accuracy.
-
-One important note with this sort of open forecasting, where we depend on a forecast
-for one or more of our independent variables such as weather, it that the accuraccy 
-of each model is contingent on the accuracy of the forecasts for those independent variables. If the weather forecast is off, then our cyclist volume forecast will also be off. This is a limitation of any model that relies on exogenous inputs.
-
+One important note with this sort of open forecasting, where we depend
+on a forecast for one or more of our independent variables such as
+weather, it that the accuraccy of each model is contingent on the
+accuracy of the forecasts for those independent variables. If the
+weather forecast is off, then our cyclist volume forecast will also be
+off. This is a limitation of any model that relies on exogenous inputs.
 
 Now consider how close the forecasts were between XGBoost and OLS.
-
 
 ```{r}
 
@@ -426,16 +567,27 @@ ggplot(plot_data, aes(x = date, y = Cyclists, group = Model)) +
   )
 ```
 
+Both architectures track the same sudden dips and peaks across the
+November production window because they share a fundamental reliance on
+identical exogenous features. Unlike the ARIMAX framework, which derives
+its momentum from its own historical lags, both OLS and XGBoost evaluate
+each day based purely on the structural conditions provided to them,
+such as calendar indicators and daily weather variations. When a sharp
+weather event or a weekend shift occurs, both models immediately react
+to the exact same external shocks.
 
+This overlapping behavior strongly suggests that the primary
+relationships driving daily cyclist volumes are predominantly linear and
+additive in nature. While XGBoost is a highly flexible and is able to
+capture non-linear interactions, it will approximate simpler,
+linear-like step functions if the true underlying data-generating
+process does not demand high-dimensional complexity.
 
-Both architectures track the same sudden dips and peaks across the November production window because they share a fundamental reliance on identical exogenous features. Unlike the ARIMAX framework, which derives its momentum from its own historical lags, both OLS and XGBoost evaluate each day based purely on the structural conditions provided to them, such as calendar indicators and daily weather variations. When a sharp weather event or a weekend shift occurs, both models immediately react to the exact same external shocks.
-
-This overlapping behavior strongly suggests that the primary relationships driving daily cyclist volumes are predominantly linear and additive in nature. While XGBoost is a highly flexible and is able to capture non-linear interactions, it will approximate simpler, linear-like step functions if the true underlying data-generating process does not demand high-dimensional complexity.
-
-The fact that XGBoost yields a superior set of evaluation metrics despite looking visually twins with OLS indicates that it is not discovering an entirely separate seasonal trend, but is instead handling the extreme boundaries of the data more effectively. Where the rigid assumptions of OLS cause it to overshoot or over-penalize on volatile days, the tree-based structure of XGBoost keeps its predictions more tightly bounded, capturing subtle thresholds in commuter behavior without losing the shared structural signal.
-
-
-
-
-
-
+The fact that XGBoost yields a superior set of evaluation metrics
+despite looking visually twins with OLS indicates that it is not
+discovering an entirely separate seasonal trend, but is instead handling
+the extreme boundaries of the data more effectively. Where the rigid
+assumptions of OLS cause it to overshoot or over-penalize on volatile
+days, the tree-based structure of XGBoost keeps its predictions more
+tightly bounded, capturing subtle thresholds in commuter behavior
+without losing the shared structural signal.
