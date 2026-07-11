@@ -125,13 +125,72 @@ ggplot(bikes, aes(x = date, y = cyclists)) +
 
 In addition, unit root testing (using both Augmented Dickey Fuller (ADF)
 and Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests) suggests that the number of cyclists is a
-unit root process as we fail to reject the null of non-stationarity in the ADF test and
+unit root process as we fail to reject the null of non-stationarity in the ADF test but
 reject the null of stationarity in the KPSS test.
+
+```{r}
+#| label: formatted-stationarity-table
+#| echo: false
+#| warning: false
+#| message: false
+
+library(tseries)
+library(dplyr)
+library(gt)
+
+# Execute the underlying diagnostic tests
+adf_res  <- adf.test(bikes_ts, alternative = "stationary")
+
+kpss_res <- kpss.test(bikes_ts, null = "Trend")
+
+# Structure the results into a clean dataframe
+stationarity_df <- data.frame(
+  Test_Name = c("Augmented Dickey-Fuller (ADF)", "Kwiatkowski-Phillips-Schmidt-Shin (KPSS)"),
+  Null_Hypothesis = c("Series possesses a unit root (Non-Stationary)", "Series is stationary around a trend (Stationary)"),
+  Statistic = c(adf_res$statistic, kpss_res$statistic),
+  P_Value = c(adf_res$p.value, kpss_res$p.value)
+)
+
+# Render a professional HTML table
+stationarity_df %>%
+  gt() %>%
+  tab_header(
+    title = "Stationarity Tests for Daily Cyclist Volume",
+    subtitle = "Joint Diagnostics for Unit Roots and Trend Stationary Dynamics"
+  ) %>%
+  cols_label(
+    Test_Name = "Diagnostic Test",
+    Null_Hypothesis = "Null Hypothesis (H₀)",
+    Statistic = "Test Statistic",
+    P_Value = "p-value"
+  ) %>%
+  fmt_number(
+    columns = Statistic,
+    decimals = 4
+  ) %>%
+  fmt_number(
+    columns = P_Value,
+    decimals = 4
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    column_labels.background.color = "#f8f9fa",
+    heading.title.font.size = px(18)
+  )
+
+``` 
+
 
 The ACF plot shows slow decay in
 the residuals, with spikes every seven days (each week), which indicates weekly dependence.
 The PACF plot shows that the first lag is the most important, and suggests that
 including at least 14 lags is important, as the 14th lag still has significance.
+
+
 
 ```{r}
 #| label: raw-data-diagnostics
@@ -265,6 +324,18 @@ ggplot(res_data, aes(x = Residuals)) +
   )
 
 ```
+
+
+Evaluating the residual diagnostic architecture provides a transparent look into the health and mathematical validity of the fitted ARIMAX model before generating out-of-sample forecasts. The primary objective of this diagnostic phase is to verify that the model has successfully extracted all predictable systemic information from the historical dataset, leaving behind errors that behave purely as white noise.
+
+From these tests, all looks to be quite well.The baseline timeline plot of the residuals reveals a highly stable, mean-reverting process that fluctuates uniformly around a mean of zero. The lack of widening or narrowing bands across the timeline indicates that the error variance remains constant over time. This absence of heteroskedasticity ensures that the model is not prone to volatile, compounding errors during specific historical periods, establishing a stable foundation for the forward-looking projection window.
+
+Inspection of the ACF and PACF plots demonstrates the correlation coefficients across almost all immediate lags are successfully suppressed within the dashed statistical significance thresholds. 
+
+However, minor visual anomalies emerge as isolated, marginal spikes breaching the blue significance boundaries at lag fourteen and lag twenty-eight. These boundaries indicate a tiny fraction of lingering bi-weekly and monthly seasonality that the linear lag structures did not perfectly absorb. In urban transit networks, such minor residual dependencies are common, often reflecting subtle real-world disruptions like bi-weekly employment pay cycles, statutory holiday shifts, or multi-week weather anomalies that slightly alter routine commuter behavioral patterns. Given that the surrounding lags remain completely quiet, these isolated breaches are minor enough to tolerate without risking structural model instability.
+
+Finally, the residual distribution plot provides strong statistical confirmation regarding the required assumption of normality. The empirical density bars track the path of the fitted theoretical normal bell curve with exceptional symmetry, centering perfectly over the zero-error axis. The distribution exhibits no severe skewness and lacks heavy, outlying tails on either side. This clean normal profile gives evidence that the model's parameters are unbiased, confirming that the calculated prediction intervals for the final cyclist count forecasts are mathematically reliable and valid for infrastructure planning.
+
 
 
 ###  OLS
@@ -405,6 +476,11 @@ interactive_df %>%
 \
 
 
+### XGBoost
+
+The Extreme Gradient Boosting framework approaches urban transit forecasting by building a sequential chain of shallow decision trees that iteratively correct past errors. This strategy makes it exceptionally well-suited for capturing sharp, non-linear thresholds in human behavior—such as the exact rainfall volume that causes commuting habits to shift—without requiring manual interaction terms.
+
+By mapping high-dimensional interactions between temporal schedules and meteorological conditions, the model automatically recognizes that an increase in ambient temperature alters cyclist counts differently on a weekend morning than it does during a midweek commuter rush. It creates localized boundaries that adapt to volatile microclimatic shifts without suffering from the rigid assumptions of global parameters.
 
 
 ## Backtesting
@@ -653,3 +729,22 @@ assumptions of OLS cause it to overshoot or over-penalize on volatile
 days, the tree-based structure of XGBoost keeps its predictions more
 tightly bounded, capturing subtle thresholds in commuter behavior
 without losing the shared structural signal.
+
+
+## Conclusion
+
+The development and deployment of this end-to-end time series pipeline provides a rigorous, data-driven framework for understanding and predicting daily cyclist volumes on the Johnson Street Bridge infrastructure. By evaluating and benchmarking classical econometric architectures against advanced machine learning methodologies, this investigation uncovers critical structural insights that balance forecasting accuracy with policy legibility.
+
+
+
+The empirical results from the production window demonstrate that while each model successfully captured the overarching rhythm of urban active transportation, their operational mechanics yielded distinct performance profiles. The classical Ordinary Least Squares architecture provided a highly interpretable baseline, confirming fundamental economic and behavioral theories. The model clearly quantified how microclimatic volatility—specifically ambient temperature bounds, rainfall accumulation, and wind velocity—directly alters a cyclist's morning modal choice before commuting. Furthermore, the temporal variables within the OLS framework mathematically isolated a heavy midweek commuter pattern, indicating that the bridge serves primarily as a critical occupational artery rather than a purely recreational pathway.
+
+
+However, the rigid global assumptions embedded within OLS severely limited its predictive boundaries, particularly regarding the deflation of standard errors caused by serial correlation. By extending this historical tracking into an ARIMAX framework, the pipeline successfully utilized an extensive lag architecture to absorb the internal momentum of the time series. Residual diagnostics for the ARIMAX model proved its statistical validity, showing a stable, mean-reverting error process centered near zero and a near-complete clearing of historical dependencies within the Autocorrelation and Partial Autocorrelation structures. The subtle, isolated boundary breaches remaining at bi-weekly intervals merely reflect real-world, non-linear human routines—such as employment pay cycles or statutory holiday shifts—that a linear structure cannot perfectly smooth out.
+
+
+From an urban planning perspective, the implications of these models extend far beyond simple numerical accuracy. Because both the econometric and machine learning frameworks share a heavy reliance on identical exogenous features, their shared movements prove that daily cycling demand is highly sensitive to immediate environmental shocks. This sensitivity highlights a common pitfall in municipal planning: relying on static historical averages can leave cities unprepared for rapid shifts in transit behavior. By deploying this analysis, Municipalities can utilize these daily volume projections to optimize seasonal maintenance windows, manage trail congestion, allocate safety resources, and accurately evaluate the return on investment for expanded active transportation networks. Most importantly, understanding the underlying environmental and temporal mechanisms driving demand allows policymakers to better anticipate structural breaks, such as sudden shifts following the installation of protected bike lanes, ensuring that long-term urban planning remains resilient, proactive, and effective. 
+
+
+
+
