@@ -49,7 +49,7 @@ source("scripts/01_data_preparation.R")
 #| label: arimax-training
 #| include: false
 #| results: "hide"
-
+#| cache: true
 source("scripts/02_model_training.R")
 
 ```
@@ -82,10 +82,12 @@ source("scripts/05_forecast_evaluations.R")
 
 ## Preliminaries
 
-### Background
+### Data
 
 Below is a baseline visualization of the daily cyclist counts recorded
 in our primary dataset.
+
+As we can see, it exhibits strong seasonality, and appears to be generally increasing over time. 
 
 ```{r}
 #| echo: false
@@ -115,6 +117,29 @@ ggplot(bikes, aes(x = date, y = cyclists)) +
     y = "Number of Cyclists"
   ) +
   theme_minimal(base_size = 13)
+
+```
+
+
+```{r}
+#| label: raw-data-diagnostics
+#| echo: false
+#| fig-width: 10
+#| fig-height: 4
+#| message: false
+#| warning: false
+
+library(forecast)
+
+# Configure the graphic window to display two plots side-by-side in one row
+par(mfrow = c(1, 2))
+
+# Generate individual ACF and PACF plots without the automated middle time series panel
+Acf(bikes_ts, main = "Raw Cyclist Volume ACF", lag.max = 35)
+Pacf(bikes_ts, main = "Raw Cyclist Volume PACF", lag.max = 35)
+
+# Reset the graphic layout parameters back to default
+par(mfrow = c(1, 1))
 
 ```
 
