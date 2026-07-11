@@ -18,7 +18,7 @@ execute:
 ## Project Overview
 
 This report details a time series forecasting project designed to predict daily
-cyclist volumes on Johnston St. Bridge in Victoria, BC. The pipeline executes data preparation, model training, validation backtesting, and true out-of-sample forecasting for 30 
+cyclist volumes on Johnston St. Bridge in Victoria, BC. The pipeline executes data preparation, model training, validation backtesting, and out-of-sample forecasting for 30 
 days in November 2025.
 
 ### Victoria's Critical Active Transportation Artery
@@ -56,6 +56,7 @@ source("scripts/02_model_training.R")
 #| results: "hide"
 #| cache: true
 
+
 source("scripts/03_model_testing.R")
 ```
 
@@ -80,6 +81,12 @@ source("scripts/05_forecast_evaluations.R")
 
 
 ## Preliminaries
+
+### Background
+
+
+
+
 Below is a baseline visualization of the daily cyclist counts recorded in our primary dataset.
 
 ```{r}
@@ -113,6 +120,127 @@ ggplot(bikes, aes(x = date, y = cyclists)) +
 
 ```
 
+
+### Model/Variable Selection
+
+The value of forecasting does not have to just derive from prediction accuracy. 
+Forecasting does not have to be independent of an attempt of causal inference, 
+and some cases gives opportunity to be an extension of the modelling 
+process. In the case of forecasting cyclist traffic, our goal is not just to give an accurate prediction of
+the number of cyclists on a specific day, but to understand the underlying
+mechanisms that are driving cyclist traffic. 
+
+This allows for the creation of policies that adapt to the underlying mechanisms that may shift 
+in response to an exogenous shock, such as expanded bike infrastructure. This will
+help bridge the common pitfall of structural breaks rendering an accurate model 
+nearly useless.If we can understand the underlying mechanisms that drive cyclist demand, we can
+better adapt to these structural breaks and create more robust forecasts.
+
+To address this, we will use Linear Regression (OLS) as it is highly interpretable.
+
+One issue with OLS for causal inference in time series is, the assumption that the error on any given day ($\epsilon_t$) tells you nothing about the error on the next day. This is highly 
+unlikely in time series and this violation is serial correlation, or that other 
+days will impact today. This will deflate the standard errors, making our coefficients
+seem more statistically significant than they are. 
+
+With this in mind, it is not a large issue for forecasting and we won't make 
+any causal claims.
+
+
+```{r}
+#| label: categorized-ols-table-with-fit
+#| echo: false
+
+library(broom)
+library(dplyr)
+library(gt)
+
+# 1. Pull the coefficients out cleanly
+raw_estimates <- broom::tidy(fit_lm)
+
+# 2. Assign interactive row groupings and display names
+interactive_df <- raw_estimates %>%
+  select(term, estimate) %>%
+  mutate(
+    Display_Name = case_when(
+      term == "(Intercept)"                ~ "Baseline Intercept",
+      term == "mean_temp"                  ~ "Mean Temperature (°C)",
+      term == "precip_mm"                  ~ "Precipitation (mm)",
+      term == "wind_mean_kmh"              ~ "Wind Speed (km/h)",
+      
+      term == "factor(month)01"            ~ "January",
+      term == "factor(month)02"            ~ "February",
+      term == "factor(month)03"            ~ "March",
+      term == "factor(month)04"            ~ "April",
+      term == "factor(month)05"            ~ "May",
+      term == "factor(month)06"            ~ "June",
+      term == "factor(month)07"            ~ "July",
+      term == "factor(month)08"            ~ "August",
+      term == "factor(month)09"            ~ "September",
+      term == "factor(month)10"            ~ "October",
+      term == "factor(month)11"            ~ "November",
+      term == "factor(month)12"            ~ "December",
+      
+      term == "factor(day)Monday"          ~ "Monday",
+      term == "factor(day)Tuesday"         ~ "Tuesday",
+      term == "factor(day)Wednesday"       ~ "Wednesday",
+      term == "factor(day)Thursday"        ~ "Thursday",
+      term == "factor(day)Friday"          ~ "Friday",
+      term == "factor(day)Saturday"        ~ "Saturday",
+      term == "factor(day)Sunday"          ~ "Sunday",
+      TRUE                                 ~ term
+    ),
+    Coefficient_Group = case_when(
+      term %in% c("(Intercept)", "mean_temp", "precip_mm", "wind_mean_kmh") ~ "Meteorological Drivers",
+      grepl("month", term)                                                  ~ "Monthly Seasonal Adjustments (March Baseline)",
+      grepl("day", term)                                                    ~ "Daily Seasonal Adjustments (Friday Baseline)",
+      TRUE                                                                  ~ "Model Settings"
+    )
+  ) %>%
+  select(Coefficient_Group, Display_Name, estimate)
+
+# 3. Pull overall model fit diagnostics using broom::glance()
+fit_stats <- broom::glance(fit_lm)
+
+# 4. Build the interactive HTML table
+interactive_df %>%
+  group_by(Coefficient_Group) %>%
+  gt(rowname_col = "Display_Name") %>%
+  tab_header(
+    title = "OLS Baseline Parameter Architecture",
+    subtitle = "Expanded Elasticities & Model Diagnostics"
+  ) %>%
+  fmt_number(
+    columns = estimate,
+    decimals = 2
+  ) %>%
+  # Append the Model Fit Summary Statistics at the bottom
+  tab_source_note(
+    source_note = html(paste0(
+      "<strong>Model Fit Diagnostics:</strong><br>",
+      "Observations: ", format(fit_stats$nobs, big.mark = ","), " | ",
+      "R²: ", round(fit_stats$r.squared, 3), " | ",
+      "Adj. R²: ", round(fit_stats$adj.r.squared, 3), " | ",
+      "RMSE: ", round(sqrt(mean(fit_lm$residuals^2)), 2), " | ",
+      "AIC: ", format(round(fit_stats$AIC, 1), big.mark = ","), " | ",
+      "BIC: ", format(round(fit_stats$BIC, 1), big.mark = ",")
+    ))
+  ) %>%
+  opt_interactive(
+    active = TRUE,
+    use_search = TRUE
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    source_notes.background.color = "#f8f9fa" # Clean background block
+  )
+```
+
+
+
+Unlike heavy rail or closed motor vehicles, cyclists are directly exposed to the surrounding climate. This exposure introduces high-dimensional volatility; microclimatic shifts in rainfall duration, ambient temperature bounds, wind speeds, and even daylight changes may create massive fluctuations in cyclist demand. Furthermore, research demonstrates that even incorrect public weather forecasts or heavy cloud visuals actively alter a cyclist's morning modal choice before they leave the house. Therefore, we will include weather data, which will be forecasted weather data, and other exogenous controls to capture these environmental and temporal effects.
+
+ 
 
 
 ## Backtesting

@@ -37,7 +37,7 @@ class(X_test_full)  <- "numeric"
 cat("Training production models on full historical dataset...\n")
 
 # Model A: OLS Regression Baseline
-fit_lm_prod <- lm(cyclists ~ mean_temp + precip_mm + wind_mean_kmh, data = prod_train)
+fit_lm_prod <- lm(cyclists ~ mean_temp + precip_mm + wind_mean_kmh + factor(day) + factor(month), data = prod_train)
 
 # Model B: ARIMAX
 train_ts_full <- ts(prod_train$cyclists, frequency = 7)

@@ -80,8 +80,17 @@ fit_xgb <- xgboost(
 val_pred_xgb <- predict(fit_xgb, newdata = X_val)
 
 
-# --- Model B: Simple OLS Regression (Weather variables only) ---
-fit_lm <- lm(cyclists ~ mean_temp + precip_mm + wind_mean_kmh, data = bt_train_data)
+
+
+# --- Model B: Simple OLS Regression (Weather variables and day month )---
+# Force March and Monday to be the reference (omitted) baselines
+
+# choosing refernce month and day
+bt_train_data$month <- relevel(factor(bt_train_data$month), ref = "03")
+bt_train_data$day   ~ relevel(factor(bt_train_data$day), ref = "Monday")
+
+
+fit_lm <- lm(cyclists ~ mean_temp + precip_mm + wind_mean_kmh + factor(month) + factor(day), data = bt_train_data)
 val_pred_lm <- predict(fit_lm, newdata = bt_val_data)
 
 
