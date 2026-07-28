@@ -1,5 +1,5 @@
 ---
-title: "Predicting Urban Pulse"
+title: "Forecasting Cyclist Traffic"
 subtitle: "Forecasting Daily Cyclist Volumes on the Johnson Street Bridge"
 author: "Tyler Stigall"
 date: today
